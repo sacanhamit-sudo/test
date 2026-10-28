@@ -725,13 +725,14 @@ async function boot(){
   const VMAX=1.6, keys={};
   function walk(dv){if(anim)anim=null;if(!free){free=true;arrived=false;showActive(-1);stopStory();Music.play(null);}walkV=Math.max(-VMAX,Math.min(VMAX,walkV+dv));lastWalk=performance.now();Music.start();}
   /* tam ekran görünüm */
-  const viewer=$('viewer'),vFrame=viewer.querySelector('iframe'),vImg=viewer.querySelector('img');let vOpen=-1;
-  function openViewer(i){const p=PROJECTS[i];vOpen=i;viewer.querySelector('.vname').textContent=p.name;const a=viewer.querySelector('.vopen');a.href='https://'+p.url;
+  const viewer=$('viewer'),vFrame=viewer.querySelector('iframe'),vImg=viewer.querySelector('img');let vOpen=-1,vAt=0;
+  function openViewer(i){const p=PROJECTS[i];vOpen=i;vAt=performance.now();viewer.querySelector('.vname').textContent=p.name;const a=viewer.querySelector('.vopen');a.href='https://'+p.url;
     if(LIVE){vImg.hidden=true;vFrame.hidden=false;const u='https://'+p.url;if(vFrame.dataset.u!==u){vFrame.dataset.u=u;vFrame.src=u;}}
     else{vFrame.hidden=true;vImg.hidden=false;vImg.src=panels[i].art.material.map.image.toDataURL();}
     viewer.hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>viewer.classList.add('on')));}
   function closeViewer(){if(vOpen<0)return;vOpen=-1;viewer.classList.remove('on');setTimeout(()=>{if(vOpen<0)viewer.hidden=true;},460);}
-  viewer.addEventListener('click',e=>{if(e.target.closest('.vopen'))return;closeViewer();});
+  // açan tıklamanın kendisi (dokunmatik ekranda gecikmeli gelen tıklama dahil) görünümü hemen kapatmasın
+  viewer.addEventListener('click',e=>{if(e.target.closest('.vopen'))return;if(performance.now()-vAt<600)return;closeViewer();});
   // fare tabloların üstündeyken büyüteç imleci
   canvas.addEventListener('pointermove',e=>{if(drag)return;ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);canvas.classList.toggle('hot',!!ray.intersectObjects(panels.map(p=>p.art))[0]);});
   addEventListener('keydown',e=>{const k=e.key;
