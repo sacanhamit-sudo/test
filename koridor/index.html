@@ -108,8 +108,18 @@ body{font-family:var(--body)}
   .name{font-size:19px}
   .count{display:none}
 }
+/* giriş ekranı: tarayıcı sesi otomatik başlatmaya izin vermezse görünür */
+#gate{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:rgba(24,18,14,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);cursor:pointer;transition:opacity .6s ease}
+#gate[hidden]{display:none}
+#gate.out{opacity:0;pointer-events:none}
+#gate .in{background:var(--bar);color:var(--on-bar);border-radius:20px;padding:28px 32px;text-align:center;max-width:min(360px,calc(100vw - 32px));box-shadow:0 18px 50px rgba(0,0,0,.35)}
+#gate h2{margin:0 0 6px;font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:.06em}
+#gate p{margin:0 0 20px;color:var(--muted);font-size:14px}
+#gate button{border:0;cursor:pointer;background:var(--gold);color:#1b1712;font:700 15px var(--body);padding:12px 22px;border-radius:12px}
+#gate button:focus-visible{outline:2px solid var(--on-bar);outline-offset:3px}
 </style>
 
+<div id="gate" hidden><div class="in"><h2>Proje Koridoru</h2><p>Müzikle birlikte gezmek için girin</p><button type="button">Koridora gir ♪</button></div></div>
 <canvas id="stage" aria-hidden="true"></canvas>
 <div id="css3d"></div>
 <div class="vignette"></div>
@@ -397,17 +407,21 @@ function MiniCSS3D(container){
 const MUSIC_FILE = "/koridor/muzik.mp3";
 const MUSIC_TITLE = "KASIMOFF · Amor Mío (Original Mix)";
 const Music=(()=>{
-  const au=new Audio();au.src=MUSIC_FILE;au.loop=true;au.preload='auto';au.volume=0;
-  let on=false,userMuted=false,fadeT=0,ctx=null;
-  function fade(to,ms,done){cancelAnimationFrame(fadeT);const from=au.volume,t0=performance.now();
-    const step=now=>{const u=Math.min(1,(now-t0)/ms);au.volume=from+(to-from)*u;if(u<1)fadeT=requestAnimationFrame(step);else if(done)done();};fadeT=requestAnimationFrame(step);}
-  function setUi(){const b=document.getElementById('music');b.setAttribute('aria-pressed',on);b.title=MUSIC_TITLE;document.getElementById('mlabel').textContent=on?MUSIC_TITLE:'Müzik';}
+  const au=new Audio();au.src=MUSIC_FILE;au.loop=true;au.preload='auto';
+  const VOL=.85;let on=false,userMuted=false,fadeT=0,ctx=null;
+  const setVol=v=>{try{au.volume=Math.max(0,Math.min(1,v));}catch(e){}};
+  function fade(to,ms,done){clearInterval(fadeT);const from=au.volume,t0=performance.now();
+    fadeT=setInterval(()=>{const u=Math.max(0,Math.min(1,(performance.now()-t0)/ms));setVol(from+(to-from)*u);if(u>=1){clearInterval(fadeT);if(done)done();}},40);}
+  function setUi(){const b=document.getElementById('music');b.setAttribute('aria-pressed',on);b.title=on?'Müziği kapat':'Müziği aç';document.getElementById('mlabel').textContent=on?MUSIC_TITLE:'Müzik';}
+  // Çalmayı dener; tarayıcı izin vermezse false döner (sessiz kalır, düğme "kapalı" görünür)
   function start(){
-    if(userMuted||on)return;
-    const p=au.play();on=true;setUi();fade(.85,1800);
-    if(p&&p.catch)p.catch(()=>{on=false;setUi();});
+    if(userMuted)return Promise.resolve(false);
+    if(on&&!au.paused)return Promise.resolve(true);
+    on=true;setUi();setVol(au.volume||0.0001);
+    let p;try{p=au.play();}catch(e){p=Promise.reject(e);}
+    return Promise.resolve(p).then(()=>{if(!on||userMuted){au.pause();return false;}fade(VOL,1500);hideGate();return true;},()=>{on=false;setUi();return false;});
   }
-  function stop(){on=false;setUi();fade(0,500,()=>{if(!on)au.pause();});}
+  function stop(){on=false;setUi();fade(0,400,()=>{if(!on)au.pause();});}
   function click(soft){ // daktilo tuşu (müzikten bağımsız, kısa sentez sesi)
     if(userMuted)return;
     try{if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;ctx=new AC();}if(ctx.state==='suspended')ctx.resume();}catch(e){return;}
@@ -416,11 +430,15 @@ const Music=(()=>{
     const src=ctx.createBufferSource();src.buffer=b;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=soft?1700:2400+Math.random()*900;bp.Q.value=1.3;
     const g=ctx.createGain();g.gain.value=soft?.06:.12;src.connect(bp);bp.connect(g);g.connect(ctx.destination);src.start(t);
   }
+  function hideGate(){const g=document.getElementById('gate');if(g&&!g.hidden){g.classList.add('out');setTimeout(()=>{g.hidden=true;},600);}}
   setUi();
-  return{start,play(){},click,toggle(){if(on){userMuted=true;stop();}else{userMuted=false;start();}}};
+  return{start,play(){},click,hideGate,toggle(){if(on&&!au.paused){userMuted=true;stop();}else{userMuted=false;start();}}};
 })();
 document.getElementById('music').addEventListener('click',e=>{e.stopPropagation();Music.toggle();});
-['pointerdown','keydown','wheel','touchstart'].forEach(t=>addEventListener(t,e=>{if(!e.target.closest?.('#music'))Music.start();},{once:true,passive:true}));
+// Sayfa açılır açılmaz çalmayı dene; tarayıcı sesi engellerse "Koridora gir" ekranı çıkar, ilk dokunuşta başlar
+['pointerdown','keydown','touchstart'].forEach(t=>addEventListener(t,e=>{if(!e.target.closest?.('#music'))Music.start();},{capture:true,passive:true}));
+document.getElementById('gate').addEventListener('click',()=>{Music.start();Music.hideGate();});
+Music.start().then(ok=>{if(!ok){const g=document.getElementById('gate');if(g)g.hidden=false;}});
 
 async function boot(){
   try{await Promise.race([Promise.all([document.fonts.load('40px Marcellus'),document.fonts.load('600 20px Manrope'),document.fonts.load('800 40px Manrope'),document.fonts.load('400 20px "IBM Plex Mono"')]),new Promise(r=>setTimeout(r,1500))]);}catch(e){}
