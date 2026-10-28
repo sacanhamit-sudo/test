@@ -72,6 +72,7 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #css3d .label{pointer-events:auto}
 #css3d iframe{pointer-events:none}   /* tabloya tıklama koridora gider: tam ekran açılır */
 #stage.hot{cursor:zoom-in}
+#stage.flag{cursor:pointer}
 /* tam ekran görünüm: tabloya tıklayınca açılır, tekrar tıklayınca tabloya döner */
 #viewer{position:fixed;inset:0;z-index:8;background:#0e0b08;opacity:0;transform:scale(.94);transition:opacity .45s ease,transform .45s ease;cursor:zoom-out}
 #viewer[hidden]{display:none}
@@ -84,6 +85,22 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #viewer .vopen{background:var(--on-bar);color:var(--ink);text-decoration:none;font-weight:700;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
 #viewer .vopen:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 @media (max-width:520px){#viewer .vhint{display:none}}
+/* bayrağa tıklayınca açılan proje bilgi penceresi */
+#info{position:fixed;inset:0;z-index:8;display:grid;place-items:center;padding:16px;background:rgba(24,18,14,.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);opacity:0;transition:opacity .3s ease}
+#info[hidden]{display:none}
+#info.on{opacity:1}
+#info .box{position:relative;width:100%;max-width:440px;background:#fbf6ec;color:#1b1712;border-radius:18px;border-top:8px solid var(--acc,#c49a45);box-shadow:0 24px 60px rgba(0,0,0,.4);padding:24px 24px 18px;transform:translateY(10px);transition:transform .3s ease}
+#info.on .box{transform:none}
+#info .no{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:#8a7c66;text-transform:uppercase}
+#info h2{margin:6px 0 10px;font-family:var(--display);font-weight:400;font-size:32px;line-height:1.1}
+#info p{margin:0 0 16px;font-size:15px;line-height:1.55;color:#4a4036}
+#info dl{margin:0 0 18px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+#info dt{color:#8a7c66}
+#info dd{margin:0;font-family:var(--mono);font-size:13px;word-break:break-all}
+#info .acts{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #e3d8c4;padding-top:14px}
+#info .open{color:#1b1712;font-weight:700;font-size:14px;text-decoration:none}
+#info .close{border:0;cursor:pointer;background:#1b1712;color:#f6efe2;font:700 14px var(--body);padding:10px 18px;border-radius:10px}
+#info .close:focus-visible,#info .open:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #css3d .story{pointer-events:none}
 .live{width:1440px;height:900px;border:0;background:#0e1420;opacity:0;transition:opacity .9s ease;display:block}
 .live.on{opacity:1}
@@ -147,6 +164,12 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 <button class="nav prev" id="prev" aria-label="Önceki proje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
 <button class="nav next" id="next" aria-label="Sonraki proje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+
+<div id="info" hidden role="dialog" aria-modal="true" aria-labelledby="infoName"><div class="box">
+  <div class="no" id="infoNo"></div><h2 id="infoName"></h2><p id="infoDesc"></p>
+  <dl><dt>Alan</dt><dd id="infoTag"></dd><dt>Adres</dt><dd id="infoUrl"></dd></dl>
+  <div class="acts"><a class="open" id="infoOpen" target="_blank" rel="noopener">Siteyi aç ↗</a><button type="button" class="close" id="infoClose">Kapat</button></div>
+</div></div>
 
 <div id="viewer" hidden role="dialog" aria-label="Proje tam ekran"><iframe title="Proje tam ekran" tabindex="-1"></iframe><img alt="" hidden><div class="catch" title="Tabloya dönmek için tıklayın"></div><div class="vbar"><span class="vname"></span><span class="vhint">tabloya dönmek için tıklayın</span><a class="vopen" target="_blank" rel="noopener">Yeni sekmede aç ↗</a></div></div>
 
@@ -630,7 +653,8 @@ async function boot(){
     flags.push({pivot,redraw(src){mat.map=flagTex(src,dark);mat.needsUpdate=true;}});
   }
   addFlag(-2.35,1.4,true);addFlag(1.5,1.4,false);
-  // her projenin sağında, duvarın önünde bilgi bayrağı
+  // her projenin sağında, duvarın önünde bilgi bayrağı (tıklayınca bilgi penceresi açılır)
+  const flagMeshes=[];
   PROJECTS.forEach((p,i)=>{
     const pn=panels[i],grp=new THREE.Group(),S=0.85;grp.position.set(ART_OX+ART_W/2+0.22,Y0-ART_Y,0.4);pn.grp.add(grp);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3.7*S,10),B({color:0xa9a9a9}));pole.position.y=1.85*S;grp.add(pole);
@@ -640,7 +664,7 @@ async function boot(){
     for(let k=0;k<P.count;k++)UV.setXY(k,P.getX(k)/0.82,P.getY(k)/3.08);UV.needsUpdate=true;
     const pivot=new THREE.Group();const ban=new THREE.Mesh(geo,B({map:projectFlagTex(p,i),side:THREE.DoubleSide}));
     ban.scale.setScalar(S);ban.position.set(0.022,0.5*S,0);pivot.add(ban);grp.add(pivot);
-    flags.push({pivot,redraw(){}});
+    ban.userData.idx=i;flagMeshes.push(ban);flags.push({pivot,redraw(){}});
   });
 
   // gerçek logo dosyası yüklenirse her yerde onunla değiştir
@@ -745,7 +769,7 @@ async function boot(){
   }
   $('prev').onclick=()=>go(target-1);
   $('next').onclick=()=>go(target+1);
-  $('home').onclick=e=>{e.stopPropagation();closeViewer();go(-1);};   // sol üstteki ad: koridorun başına dön
+  $('home').onclick=e=>{e.stopPropagation();closeViewer();closeInfo();go(-1);};   // sol üstteki ad: koridorun başına dön
   // "Önce hayal edildi" → harf harf silinir → canlı site → "Şimdi gerçeğe dönüştü" (daktilo sesiyle)
   let storyTok=0;const storyTx=storyEl.querySelector('#storyText'),wait=ms=>new Promise(r=>setTimeout(r,ms));
   async function typeTxt(t,tok){for(const ch of t){if(tok!==storyTok)return false;storyTx.textContent+=ch;if(ch!==' ')Music.click(false);await wait(reduce?0:75+Math.random()*70);}return true;}
@@ -761,6 +785,15 @@ async function boot(){
   // yürüyüş hızı (m/sn) ataletli: girdi hızlandırır, sürtünme yumuşakça durdurur
   const VMAX=1.6, keys={};
   function walk(dv){if(anim)anim=null;if(!free){free=true;arrived=false;showActive(-1);stopStory();Music.play(null);}walkV=Math.max(-VMAX,Math.min(VMAX,walkV+dv));lastWalk=performance.now();Music.start();}
+  /* bayrak bilgi penceresi */
+  const info=$('info');let infoOpen=false;
+  function openInfo(i){const p=PROJECTS[i];info.querySelector('.box').style.setProperty('--acc',p.accent);
+    $('infoNo').textContent='No. '+String(i+1).padStart(2,'0')+' · Proje';$('infoName').textContent=p.name;$('infoDesc').textContent=p.desc;
+    $('infoTag').textContent=p.tag;$('infoUrl').textContent=p.url;$('infoOpen').href='https://'+p.url;
+    info.hidden=false;infoOpen=true;requestAnimationFrame(()=>requestAnimationFrame(()=>info.classList.add('on')));setTimeout(()=>$('infoClose').focus(),50);}
+  function closeInfo(){if(!infoOpen)return;infoOpen=false;info.classList.remove('on');setTimeout(()=>{if(!infoOpen)info.hidden=true;},300);}
+  $('infoClose').onclick=closeInfo;
+  info.addEventListener('click',e=>{if(e.target===info)closeInfo();});
   /* tam ekran görünüm */
   const viewer=$('viewer'),vFrame=viewer.querySelector('iframe'),vImg=viewer.querySelector('img');let vOpen=-1,vAt=0;
   function openViewer(i){const p=PROJECTS[i];vOpen=i;vAt=performance.now();viewer.querySelector('.vname').textContent=p.name;const a=viewer.querySelector('.vopen');a.href='https://'+p.url;
@@ -771,8 +804,9 @@ async function boot(){
   // açan tıklamanın kendisi (dokunmatik ekranda gecikmeli gelen tıklama dahil) görünümü hemen kapatmasın
   viewer.addEventListener('click',e=>{if(e.target.closest('.vopen'))return;if(performance.now()-vAt<600)return;closeViewer();});
   // fare tabloların üstündeyken büyüteç imleci
-  canvas.addEventListener('pointermove',e=>{if(drag)return;ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);canvas.classList.toggle('hot',!!ray.intersectObjects(panels.map(p=>p.art))[0]);});
+  canvas.addEventListener('pointermove',e=>{if(drag)return;ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);const fh=ray.intersectObjects(flagMeshes)[0];canvas.classList.toggle('hot',!fh&&!!ray.intersectObjects(panels.map(p=>p.art))[0]);canvas.classList.toggle('flag',!!fh);});
   addEventListener('keydown',e=>{const k=e.key;
+    if(infoOpen){if(k==='Escape'){e.preventDefault();closeInfo();}return;}
     if(vOpen>=0){if(k==='Escape'||k===' '||k==='Enter'){e.preventDefault();closeViewer();}return;}
     if(['ArrowRight',' '].includes(k)){e.preventDefault();go(target+1);}
     if(k==='ArrowLeft'){e.preventDefault();go(target-1);}
@@ -791,7 +825,9 @@ async function boot(){
   const endDrag=e=>{if(!drag||drag.id!==e.pointerId)return;
     // tıklama (sürüklemesiz): tabloya tıklanırsa o esere git
     if(drag.b===0&&Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<6){ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);
-      const hit=ray.intersectObjects(panels.map(p=>p.art))[0];if(hit){const k=hit.object.userData.idx;if(k===target&&!free&&!anim)openViewer(k);else go(k);}}
+      const fh=ray.intersectObjects(flagMeshes)[0],ah=ray.intersectObjects(panels.map(p=>p.art))[0];
+      if(fh&&(!ah||fh.distance<ah.distance)){openInfo(fh.object.userData.idx);drag=null;return;}
+      const hit=ah;if(hit){const k=hit.object.userData.idx;if(k===target&&!free&&!anim)openViewer(k);else go(k);}}
     drag=null;};
   canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',()=>{drag=null;});
   canvas.addEventListener('dblclick',()=>{tYaw=0;tPitch=0;});
