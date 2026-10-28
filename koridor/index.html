@@ -66,7 +66,21 @@ body{font-family:var(--body)}
 .nav:focus-visible,.dot:focus-visible,.go:focus-visible,.music:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 #css3d{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
-#css3d iframe,#css3d .label{pointer-events:auto}
+#css3d .label{pointer-events:auto}
+#css3d iframe{pointer-events:none}   /* tabloya tıklama koridora gider: tam ekran açılır */
+#stage.hot{cursor:zoom-in}
+/* tam ekran görünüm: tabloya tıklayınca açılır, tekrar tıklayınca tabloya döner */
+#viewer{position:fixed;inset:0;z-index:8;background:#0e0b08;opacity:0;transform:scale(.94);transition:opacity .45s ease,transform .45s ease;cursor:zoom-out}
+#viewer[hidden]{display:none}
+#viewer.on{opacity:1;transform:none}
+#viewer iframe,#viewer img{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0e1420;object-fit:contain}
+#viewer .catch{position:absolute;inset:0}
+#viewer .vbar{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:var(--bar);color:var(--on-bar);padding:8px 8px 8px 16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:calc(100vw - 32px);white-space:nowrap}
+#viewer .vname{font-family:var(--display);font-size:17px;overflow:hidden;text-overflow:ellipsis}
+#viewer .vhint{font-family:var(--mono);font-size:11px;color:var(--muted)}
+#viewer .vopen{background:var(--on-bar);color:var(--ink);text-decoration:none;font-weight:700;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
+#viewer .vopen:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+@media (max-width:520px){#viewer .vhint{display:none}}
 #css3d .story{pointer-events:none}
 .live{width:1440px;height:900px;border:0;background:#0e1420;opacity:0;transition:opacity .9s ease;display:block}
 .live.on{opacity:1}
@@ -130,6 +144,8 @@ body{font-family:var(--body)}
 
 <button class="nav prev" id="prev" aria-label="Önceki proje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
 <button class="nav next" id="next" aria-label="Sonraki proje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+
+<div id="viewer" hidden role="dialog" aria-label="Proje tam ekran"><iframe title="Proje tam ekran" tabindex="-1"></iframe><img alt="" hidden><div class="catch" title="Tabloya dönmek için tıklayın"></div><div class="vbar"><span class="vname"></span><span class="vhint">tabloya dönmek için tıklayın</span><a class="vopen" target="_blank" rel="noopener">Yeni sekmede aç ↗</a></div></div>
 
 <div class="hud">
   <div class="card" role="status" aria-live="polite">
@@ -701,14 +717,25 @@ async function boot(){
     await wait(400);if(!await typeTxt('Önce hayal edildi…',tok))return;
     await wait(1900);if(tok!==storyTok||!await eraseTxt(tok))return;
     revealLive(i);await wait(700);if(!await typeTxt('Şimdi gerçeğe dönüştü.',tok))return;
-    await wait(4200);if(tok===storyTok)storyEl.classList.remove('on');}
+  }   // son yazı tablonun üstünde tabela gibi kalır; başka esere geçince silinir
   function stopStory(){storyTok++;storyEl.classList.remove('on');}
   // serbest yürüyüş (tekerlek, orta tuşla sürükleme, W/S) ve serbest bakış (sol tuş ya da parmakla sürükleme)
   const ZMIN=ZEND+3, ZMAX=poseOf(-1).z;
   // yürüyüş hızı (m/sn) ataletli: girdi hızlandırır, sürtünme yumuşakça durdurur
   const VMAX=1.6, keys={};
   function walk(dv){if(anim)anim=null;if(!free){free=true;arrived=false;showActive(-1);stopStory();Music.play(null);}walkV=Math.max(-VMAX,Math.min(VMAX,walkV+dv));lastWalk=performance.now();Music.start();}
+  /* tam ekran görünüm */
+  const viewer=$('viewer'),vFrame=viewer.querySelector('iframe'),vImg=viewer.querySelector('img');let vOpen=-1;
+  function openViewer(i){const p=PROJECTS[i];vOpen=i;viewer.querySelector('.vname').textContent=p.name;const a=viewer.querySelector('.vopen');a.href='https://'+p.url;
+    if(LIVE){vImg.hidden=true;vFrame.hidden=false;const u='https://'+p.url;if(vFrame.dataset.u!==u){vFrame.dataset.u=u;vFrame.src=u;}}
+    else{vFrame.hidden=true;vImg.hidden=false;vImg.src=panels[i].art.material.map.image.toDataURL();}
+    viewer.hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>viewer.classList.add('on')));}
+  function closeViewer(){if(vOpen<0)return;vOpen=-1;viewer.classList.remove('on');setTimeout(()=>{if(vOpen<0)viewer.hidden=true;},460);}
+  viewer.addEventListener('click',e=>{if(e.target.closest('.vopen'))return;closeViewer();});
+  // fare tabloların üstündeyken büyüteç imleci
+  canvas.addEventListener('pointermove',e=>{if(drag)return;ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);canvas.classList.toggle('hot',!!ray.intersectObjects(panels.map(p=>p.art))[0]);});
   addEventListener('keydown',e=>{const k=e.key;
+    if(vOpen>=0){if(k==='Escape'||k===' '||k==='Enter'){e.preventDefault();closeViewer();}return;}
     if(['ArrowRight',' '].includes(k)){e.preventDefault();go(target+1);}
     if(k==='ArrowLeft'){e.preventDefault();go(target-1);}
     if(k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();keys.f=true;}
@@ -726,7 +753,7 @@ async function boot(){
   const endDrag=e=>{if(!drag||drag.id!==e.pointerId)return;
     // tıklama (sürüklemesiz): tabloya tıklanırsa o esere git
     if(drag.b===0&&Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<6){ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);
-      const hit=ray.intersectObjects(panels.map(p=>p.art))[0];if(hit)go(hit.object.userData.idx===target&&!free?-99:hit.object.userData.idx);}
+      const hit=ray.intersectObjects(panels.map(p=>p.art))[0];if(hit){const k=hit.object.userData.idx;if(k===target&&!free&&!anim)openViewer(k);else go(k);}}
     drag=null;};
   canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',()=>{drag=null;});
   canvas.addEventListener('dblclick',()=>{tYaw=0;tPitch=0;});
