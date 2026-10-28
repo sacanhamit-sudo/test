@@ -72,6 +72,15 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #css3d .label{pointer-events:auto}
 #css3d iframe{pointer-events:none}   /* tabloya tıklama koridora gider: tam ekran açılır */
 #stage.hot{cursor:zoom-in}
+/* tablonun ortasındaki kavuniçi dokunma noktası (canlı sitenin de önünde görünür; tıklama arkadaki tabloya geçer) */
+.hot3d{width:200px;height:200px;pointer-events:none!important;position:relative}
+.hot3d i{position:absolute;inset:0;border-radius:50%;box-sizing:border-box}
+.hot3d .o{border:13px solid #ff8c3a;box-shadow:0 0 0 5px rgba(255,255,255,.85),inset 0 0 0 5px rgba(255,255,255,.85)}
+.hot3d .m{inset:22%;border:11px solid #ff8c3a;box-shadow:0 0 0 4px rgba(255,255,255,.8);animation:hotm 1.6s ease-in-out infinite}
+.hot3d .d{inset:40%;background:#ff8c3a;box-shadow:0 0 0 5px #fff,0 0 30px 8px rgba(255,140,58,.7);animation:hotd 1.6s ease-in-out infinite}
+@keyframes hotm{0%,100%{transform:scale(.55);opacity:.5}50%{transform:scale(1.15);opacity:1}}
+@keyframes hotd{0%,100%{transform:scale(1.25)}50%{transform:scale(.7)}}
+@media (prefers-reduced-motion: reduce){.hot3d .m,.hot3d .d{animation:none}}
 #stage.flag{cursor:pointer}
 /* tam ekran görünüm: tabloya tıklayınca açılır, tekrar tıklayınca tabloya döner */
 #viewer{position:fixed;inset:0;z-index:8;background:#0e0b08;opacity:0;transform:scale(.94);transition:opacity .45s ease,transform .45s ease;cursor:zoom-out}
@@ -677,8 +686,7 @@ async function boot(){
     [outer,mid,dot].forEach(m=>m.renderOrder=5);
     hotspots.push({mid,dot,r,ph:hotspots.length*0.9});
   }
-  // her tablonun sol kenarının ortasında (canlı site açıkken de görünsün diye çerçevenin üstünde)
-  panels.forEach((pn,i)=>addHotspot(pn.grp,ART_OX-ART_W/2-0.04,0,0.09,0.22,i,artTargets));
+  // tablolardaki dokunma noktası CSS katmanında (canlı sitenin önünde kalsın diye) — aşağıda, CSS3D kurulunca eklenir
   PROJECTS.forEach((p,i)=>{
     const pn=panels[i],grp=new THREE.Group(),S=0.85;grp.position.set(ART_OX+ART_W/2+0.22,Y0-ART_Y,0.4);pn.grp.add(grp);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3.7*S,10),B({color:0xa9a9a9}));pole.position.y=1.85*S;grp.add(pole);
@@ -689,7 +697,7 @@ async function boot(){
     const pivot=new THREE.Group();const ban=new THREE.Mesh(geo,B({map:projectFlagTex(p,i),side:THREE.DoubleSide}));
     ban.scale.setScalar(S);ban.position.set(0.022,0.5*S,0);pivot.add(ban);grp.add(pivot);
     ban.userData.idx=i;flagMeshes.push(ban);flags.push({pivot,redraw(){}});
-    addHotspot(pivot,0.3*S,3.15*S,0.03,0.17,i,flagMeshes);   // bayrağın kıvrık başında
+    addHotspot(pivot,0.41*S,2.05*S,0.03,0.17,i,flagMeshes);   // bayrağın ortasında
   });
 
   // gerçek logo dosyası yüklenirse her yerde onunla değiştir
@@ -721,6 +729,8 @@ async function boot(){
     const o=new THREE.Object3D();o.scale.setScalar(0.62/620*K);o.rotation.copy(pn.grp.rotation);
     o.position.copy(pn.grp.localToWorld(pn.plaque.position.clone().setZ(0.02))).multiplyScalar(K);cssR.add(a,o);
   });
+  PROJECTS.forEach((p,i)=>{const pn=panels[i],h=document.createElement('div');h.className='hot3d';h.setAttribute('aria-hidden','true');h.innerHTML='<i class="o"></i><i class="m"></i><i class="d"></i>';
+    const o=new THREE.Object3D();o.scale.setScalar(0.44/200*K);o.rotation.copy(pn.grp.rotation);o.position.copy(pn.grp.localToWorld(new THREE.Vector3(ART_OX,0,0.1))).multiplyScalar(K);cssR.add(h,o);});
   function liveFor(i){
     const pn=panels[i];if(!LIVE||!hasCSS)return null;
     if(!pn.liveEl){
