@@ -167,7 +167,7 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 <div id="info" hidden role="dialog" aria-modal="true" aria-labelledby="infoName"><div class="box">
   <div class="no" id="infoNo"></div><h2 id="infoName"></h2><p id="infoDesc"></p>
-  <dl><dt>Alan</dt><dd id="infoTag"></dd><dt>Adres</dt><dd id="infoUrl"></dd></dl>
+  <dl><dt>Tür</dt><dd id="infoKind"></dd><dt>Alan</dt><dd id="infoTag"></dd><dt>Adres</dt><dd id="infoUrl"></dd></dl>
   <div class="acts"><a class="open" id="infoOpen" target="_blank" rel="noopener">Siteyi aç ↗</a><button type="button" class="close" id="infoClose">Kapat</button></div>
 </div></div>
 
@@ -190,11 +190,16 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 <script>
 /* ===== PROJELER — adları, adresleri ve açıklamaları buradan düzenleyin ===== */
 const PROJECTS = [
-  { name:"Ishbee",              url:"ishbee.vercel.app",            tag:"Web platformu",         desc:"Kurumsal web platformu ve dijital çözümler.",                            accent:"#e3a72f" },
-  { name:"Teknik Bizim İşimiz", url:"teknikbizimisimiz.vercel.app", tag:"Teknik hizmetler",      desc:"Teknik servis ve hizmet sitesi.",                                       accent:"#8a63d2" },
-  { name:"EihalePro",           url:"eihalepro.vercel.app",         tag:"SaaS · Satınalma",      desc:"B2B e-ihale ve e-tedarik platformu. Teklif ve eksiltmeler tek panelde.", accent:"#2f8fe0" },
-  { name:"Toygun",              url:"toygun.vercel.app",            tag:"Web projesi",           desc:"Kurumsal tanıtım ve web projesi.",                                       accent:"#e0583a" },
-  { name:"Outsight Danışmanlık", url:"www.outsight.com.tr",          tag:"Yönetim danışmanlığı",  desc:"Geleceği, bugünden tasarlayan bir strateji merkezi.",                   accent:"#2fae6b" },
+  { name:"Ishbee",              url:"ishbee.vercel.app",            tag:"Web platformu",         desc:"Kurumsal web platformu ve dijital çözümler.",                            accent:"#e3a72f", kind:"Web sitesi",
+    about:"Ishbee'nin kurumsal web sitesi; markayı ve sunduğu dijital çözümleri tek bir yerde tanıtıyor. Zamanla ölçüm ve analiz odaklı bir platforma dönüşmesi planlanıyor." },
+  { name:"Teknik Bizim İşimiz", url:"teknikbizimisimiz.vercel.app", tag:"Teknik hizmetler",      desc:"Teknik servis ve hizmet sitesi.",                                       accent:"#8a63d2", kind:"Web sitesi",
+    about:"Teknik servis ve hizmet işleri için hazırlanmış tanıtım sitesi. Hizmetleri ve iletişim bilgilerini telefonda da rahat okunan sade bir düzende sunuyor." },
+  { name:"EihalePro",           url:"eihalepro.vercel.app",         tag:"SaaS · Satınalma",      desc:"B2B e-ihale ve e-tedarik platformu. Teklif ve eksiltmeler tek panelde.", accent:"#2f8fe0", kind:"Uygulama (SaaS)",
+    about:"Şirketlerin tedarikçilerden teklif toplayıp elektronik ihale ve eksiltme yaptığı B2B satınalma platformu. İngiliz, Hollanda, Japon ve Brezilya tipi ihale türlerini destekliyor." },
+  { name:"Toygun",              url:"toygun.vercel.app",            tag:"Web projesi",           desc:"Kurumsal tanıtım ve web projesi.",                                       accent:"#e0583a", kind:"Web uygulaması",
+    about:"Tanıtım sayfaları ve panel ekranlarıyla birlikte geliştirilen web projesi. Revizyonlarla sürekli büyüyor ve Vercel üzerinde yayında tutuluyor." },
+  { name:"Outsight Danışmanlık", url:"www.outsight.com.tr",          tag:"Yönetim danışmanlığı",  desc:"Geleceği, bugünden tasarlayan bir strateji merkezi.",                   accent:"#2fae6b", kind:"Web sitesi",
+    about:"Outsight Danışmanlık'ın kurumsal sitesi; satınalma, tedarik zinciri ve yönetim danışmanlığı hizmetlerini anlatıyor. Koridordaki tüm projelerin arkasındaki saha deneyimini temsil ediyor." },
 ];
 /* Canlı önizleme: esere varınca site çerçevenin içinde canlı açılır.
    "auto" = Vercel gibi kendi adresinizde açık, Claude önizlemesinde kapalı. true / false ile zorlayabilirsiniz. */
@@ -786,14 +791,15 @@ async function boot(){
   const VMAX=1.6, keys={};
   function walk(dv){if(anim)anim=null;if(!free){free=true;arrived=false;showActive(-1);stopStory();Music.play(null);}walkV=Math.max(-VMAX,Math.min(VMAX,walkV+dv));lastWalk=performance.now();Music.start();}
   /* bayrak bilgi penceresi */
-  const info=$('info');let infoOpen=false;
+  const info=$('info');let infoOpen=false,infoAt=0;
   function openInfo(i){const p=PROJECTS[i];info.querySelector('.box').style.setProperty('--acc',p.accent);
-    $('infoNo').textContent='No. '+String(i+1).padStart(2,'0')+' · Proje';$('infoName').textContent=p.name;$('infoDesc').textContent=p.desc;
+    $('infoNo').textContent='No. '+String(i+1).padStart(2,'0')+' · Proje';$('infoName').textContent=p.name;$('infoDesc').textContent=p.about||p.desc;$('infoKind').textContent=p.kind||'Proje';
     $('infoTag').textContent=p.tag;$('infoUrl').textContent=p.url;$('infoOpen').href='https://'+p.url;
-    info.hidden=false;infoOpen=true;requestAnimationFrame(()=>requestAnimationFrame(()=>info.classList.add('on')));setTimeout(()=>$('infoClose').focus(),50);}
+    info.hidden=false;infoOpen=true;infoAt=performance.now();requestAnimationFrame(()=>requestAnimationFrame(()=>info.classList.add('on')));setTimeout(()=>$('infoClose').focus(),50);}
   function closeInfo(){if(!infoOpen)return;infoOpen=false;info.classList.remove('on');setTimeout(()=>{if(!infoOpen)info.hidden=true;},300);}
-  $('infoClose').onclick=closeInfo;
-  info.addEventListener('click',e=>{if(e.target===info)closeInfo();});
+  $('infoClose').onclick=()=>{if(performance.now()-infoAt<300)return;closeInfo();};
+  // açan tıklamanın kendisi (gecikmeli gelen tıklama dahil) pencereyi hemen kapatmasın
+  info.addEventListener('click',e=>{if(performance.now()-infoAt<600)return;if(e.target===info)closeInfo();});
   /* tam ekran görünüm */
   const viewer=$('viewer'),vFrame=viewer.querySelector('iframe'),vImg=viewer.querySelector('img');let vOpen=-1,vAt=0;
   function openViewer(i){const p=PROJECTS[i];vOpen=i;vAt=performance.now();viewer.querySelector('.vname').textContent=p.name;const a=viewer.querySelector('.vopen');a.href='https://'+p.url;
