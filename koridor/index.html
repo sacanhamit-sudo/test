@@ -82,14 +82,14 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #pass{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);z-index:4;width:min(560px,calc(100vw - 32px));pointer-events:none;
   transform:translate(-50%,calc(-100% - 90px));transition:transform .6s cubic-bezier(.2,.8,.2,1)}
 #pass.on{transform:translate(-50%,0)}
-#pass .glass{background:rgba(30,22,16,.32);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+#pass .glass{background:linear-gradient(180deg,rgba(22,16,12,.72),rgba(22,16,12,.6));-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
   border:1px solid rgba(255,255,255,.45);border-radius:24px;padding:22px 26px 20px;text-align:center;color:#fff;
   box-shadow:0 18px 50px rgba(40,24,10,.28),inset 0 1px 0 rgba(255,255,255,.5)}
-#pass img{display:block;margin:0 auto 12px;width:min(340px,70%);height:auto}
-#pass .lt{font:800 clamp(30px,7vw,48px)/1 var(--body);letter-spacing:.22em;margin:0 0 4px;padding-left:.22em}
-#pass .ls{font:500 13px var(--body);letter-spacing:.5em;opacity:.85;margin-bottom:14px;padding-left:.5em}
-#pass .pn{font-family:var(--mono);font-size:13px;letter-spacing:.18em;color:var(--gold)}
-#pass .pt{font-family:var(--display);font-size:clamp(24px,5vw,34px);line-height:1.15;margin-top:2px;text-shadow:0 2px 12px rgba(0,0,0,.25)}
+#pass img{filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));display:block;margin:0 auto 12px;width:min(340px,70%);height:auto}
+#pass .lt{text-shadow:0 2px 10px rgba(0,0,0,.45);font:800 clamp(30px,7vw,48px)/1 var(--body);letter-spacing:.22em;margin:0 0 4px;padding-left:.22em}
+#pass .ls{font:600 13px var(--body);letter-spacing:.5em;opacity:1;text-shadow:0 1px 6px rgba(0,0,0,.5);margin-bottom:14px;padding-left:.5em}
+#pass .pn{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:.16em;color:#ffd37f;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+#pass .pt{font-family:var(--display);font-size:clamp(26px,5.4vw,38px);line-height:1.15;margin-top:4px;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.55),0 0 18px rgba(0,0,0,.35)}
 @media (prefers-reduced-motion: reduce){#pass{transition:none}}
 /* tablonun ortasındaki kavuniçi dokunma noktası (canlı sitenin de önünde görünür; tıklama arkadaki tabloya geçer) */
 .hot3d{width:200px;height:200px;pointer-events:none!important;position:relative}
