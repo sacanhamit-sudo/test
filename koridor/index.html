@@ -25,7 +25,7 @@ body{font-family:var(--body)}
 #stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 #stage:active{cursor:grabbing}
 
-.top{position:fixed;top:0;left:0;right:0;z-index:2;pointer-events:none;
+.top{position:fixed;top:0;left:0;right:0;z-index:9;pointer-events:none;
   padding-top:calc(env(safe-area-inset-top,0px) + 18px);
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -33,6 +33,9 @@ body{font-family:var(--body)}
 .brand{background:var(--bar);color:var(--on-bar);padding:8px 14px;border-radius:999px;
   font-family:var(--display);font-size:16px;letter-spacing:.14em;text-transform:uppercase}
 .brand span{color:var(--gold)}
+button.brand{pointer-events:auto;border:0;cursor:pointer;transition:background .2s}
+button.brand:hover{background:#000}
+button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 .nav{position:fixed;top:50%;z-index:3;width:56px;height:56px;margin-top:-28px;border:0;border-radius:16px;
   background:var(--bar);color:var(--on-bar);line-height:1;cursor:pointer;
@@ -75,7 +78,7 @@ body{font-family:var(--body)}
 #viewer.on{opacity:1;transform:none}
 #viewer iframe,#viewer img{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0e1420;object-fit:contain}
 #viewer .catch{position:absolute;inset:0}
-#viewer .vbar{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:var(--bar);color:var(--on-bar);padding:8px 8px 8px 16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:calc(100vw - 32px);white-space:nowrap}
+#viewer .vbar{position:absolute;z-index:1;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:var(--bar);color:var(--on-bar);padding:8px 8px 8px 16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:calc(100vw - 32px);white-space:nowrap}
 #viewer .vname{font-family:var(--display);font-size:17px;overflow:hidden;text-overflow:ellipsis}
 #viewer .vhint{font-family:var(--mono);font-size:11px;color:var(--muted)}
 #viewer .vopen{background:var(--on-bar);color:var(--ink);text-decoration:none;font-weight:700;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
@@ -138,7 +141,7 @@ body{font-family:var(--body)}
 <div id="css3d"></div>
 <div class="vignette"></div>
 
-<header class="top"><div class="brand">Proje <span>Koridoru</span></div>
+<header class="top"><button class="brand" id="home" type="button" title="Koridorun başına dön">Proje <span>Koridoru</span></button>
   <button class="music" id="music" aria-pressed="false" title="KASIMOFF · Amor Mío (Original Mix)"><span class="bars"><i></i><i></i><i></i></span><span id="mlabel">Müzik</span></button>
 </header>
 
@@ -183,7 +186,7 @@ const N=PROJECTS.length, SP=8, W=3.0, Y0=-1.6, Y1=4.0, H=Y1-Y0, EYE=1.05, ART_Y=
 const zOf=i=>-6-i*SP;                 // eserlerin duvar konumu (bölme ortaları)
 const sideOf=i=>i%2?1:-1;            // -1 sol duvar, +1 sağ duvar
 const ZEND=zOf(N-1)-6, ZW0=8, ZW1=ZEND-4, LEN=ZW0-ZW1, ZC=(ZW0+ZW1)/2;   // duvarlar 4 m'lik bölmelere hizalı
-const ART_W=2.4, ART_H=1.5, ART_OX=0;   // tablo boyutu ve bölme içindeki kayması (sağında etiket)
+const ART_W=2.4, ART_H=1.5, ART_OX=-0.35;   // tablo boyutu ve bölme içindeki kayması (sağında etiket)
 
 /* ---------- yardımcılar ---------- */
 function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
@@ -387,6 +390,26 @@ function flagTex(src,dark){ // yelken bayrak kumaşı: logo dikey, alttan yukar�
   const [lc,lg]=canv(src.width,src.height);lg.drawImage(src,0,0);lg.globalCompositeOperation='source-in';lg.fillStyle=dark?'#ffffff':'#17181a';lg.fillRect(0,0,lc.width,lc.height);
   g.save();g.translate(150,640);g.rotate(-Math.PI/2);const lw=880,lh=lw*src.height/src.width;g.drawImage(lc,-lw/2,-lh/2,lw,lh);g.restore();
   g.fillStyle='#c49a45';g.fillRect(0,0,8,1232);
+  return tex(c);
+}
+/* projenin sağındaki kırlangıç bayrak: proje bilgisi, alttan yukarı okunur */
+function projectFlagTex(p,i){
+  const [c,g]=canv(320,1232);g.fillStyle='#f7f3ea';g.fillRect(0,0,320,1232);
+  g.fillStyle=p.accent;g.fillRect(0,0,320,330);                 // bayrağın kıvrık başı proje renginde
+  g.fillStyle='rgba(255,255,255,.9)';g.font='600 30px Manrope, sans-serif';
+  g.save();g.translate(0,1232);g.rotate(-Math.PI/2);
+  g.fillText('No. '+String(i+1).padStart(2,'0'),930,175);
+  const X0=360,MW=510;   // yazılar bayrağın üst yarısında (alt kısım bilgi kartının arkasında kalabilir)
+  g.fillStyle=p.accent;g.font='500 24px "IBM Plex Mono", monospace';g.fillText(p.tag.toLocaleUpperCase('tr-TR'),X0,62);
+  g.fillStyle='#1b1712';let fs=92;g.font=fs+'px Marcellus, serif';while(g.measureText(p.name).width>MW&&fs>40){fs-=4;g.font=fs+'px Marcellus, serif';}
+  g.fillText(p.name,X0-4,140);
+  g.fillStyle='#4a4036';g.font='400 26px Manrope, sans-serif';
+  const words=p.desc.split(' ');let line='',y=188,n=0;
+  for(const w of words){const s=line?line+' '+w:w;if(g.measureText(s).width>MW&&line){g.fillText(line,X0,y);line=w;y+=32;if(++n>=3)break;}else line=s;}
+  if(n<3)g.fillText(line,X0,y);
+  g.fillStyle='#8a7c66';g.font='400 22px "IBM Plex Mono", monospace';g.fillText(p.url,X0,298);
+  g.restore();
+  g.fillStyle='#c49a45';g.fillRect(0,0,8,1232);                  // direk tarafında altın şerit
   return tex(c);
 }
 function endTex(){
@@ -607,6 +630,18 @@ async function boot(){
     flags.push({pivot,redraw(src){mat.map=flagTex(src,dark);mat.needsUpdate=true;}});
   }
   addFlag(-2.35,1.4,true);addFlag(1.5,1.4,false);
+  // her projenin sağında, duvarın önünde bilgi bayrağı
+  PROJECTS.forEach((p,i)=>{
+    const pn=panels[i],grp=new THREE.Group(),S=0.85;grp.position.set(ART_OX+ART_W/2+0.22,Y0-ART_Y,0.4);pn.grp.add(grp);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3.7*S,10),B({color:0xa9a9a9}));pole.position.y=1.85*S;grp.add(pole);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.32,0.1,24),B({color:0x262626}));base.position.y=0.05;grp.add(base);
+    const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(0,3.0);sh.bezierCurveTo(0.35,3.08,0.82,2.9,0.82,2.25);sh.lineTo(0.74,0.22);sh.quadraticCurveTo(0.42,0.0,0,0);
+    const geo=new THREE.ShapeGeometry(sh,24),P=geo.attributes.position,UV=geo.attributes.uv;
+    for(let k=0;k<P.count;k++)UV.setXY(k,P.getX(k)/0.82,P.getY(k)/3.08);UV.needsUpdate=true;
+    const pivot=new THREE.Group();const ban=new THREE.Mesh(geo,B({map:projectFlagTex(p,i),side:THREE.DoubleSide}));
+    ban.scale.setScalar(S);ban.position.set(0.022,0.5*S,0);pivot.add(ban);grp.add(pivot);
+    flags.push({pivot,redraw(){}});
+  });
 
   // gerçek logo dosyası yüklenirse her yerde onunla değiştir
   if(LOGO_IMAGE){const im=new Image();im.crossOrigin='anonymous';
@@ -708,7 +743,9 @@ async function boot(){
     $('eyebrow').textContent=p.tag;$('name').textContent=p.name;$('url').textContent=p.url;
     $('count').textContent=(target+1)+' / '+N;link.hidden=false;link.href='https://'+p.url;
   }
-  $('prev').onclick=()=>go(target-1);$('next').onclick=()=>go(target+1);
+  $('prev').onclick=()=>go(target-1);
+  $('next').onclick=()=>go(target+1);
+  $('home').onclick=e=>{e.stopPropagation();closeViewer();go(-1);};   // sol üstteki ad: koridorun başına dön
   // "Önce hayal edildi" → harf harf silinir → canlı site → "Şimdi gerçeğe dönüştü" (daktilo sesiyle)
   let storyTok=0;const storyTx=storyEl.querySelector('#storyText'),wait=ms=>new Promise(r=>setTimeout(r,ms));
   async function typeTxt(t,tok){for(const ch of t){if(tok!==storyTok)return false;storyTx.textContent+=ch;if(ch!==' ')Music.click(false);await wait(reduce?0:75+Math.random()*70);}return true;}
