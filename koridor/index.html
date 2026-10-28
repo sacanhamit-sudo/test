@@ -33,6 +33,12 @@ body{font-family:var(--body)}
 .brand{background:var(--bar);color:var(--on-bar);padding:8px 14px;border-radius:999px;
   font-family:var(--display);font-size:16px;letter-spacing:.14em;text-transform:uppercase}
 .brand span{color:var(--gold)}
+/* hangi koridorda olunduğu: üstte, ortada her zaman görünür */
+.halltag{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 18px);transform:translateX(-50%);z-index:9;pointer-events:none;display:flex;gap:10px;align-items:baseline;padding:8px 16px;border-radius:999px;background:var(--bar);color:var(--on-bar);white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.2);transition:background .8s ease}
+.halltag b{font:500 11px var(--mono);letter-spacing:.16em;color:var(--gold)}
+.halltag span{font-family:var(--display);font-size:16px;letter-spacing:.06em}
+.halltag.h1{background:rgba(9,74,77,.92)}
+@media (max-width:820px){.halltag{top:calc(env(safe-area-inset-top,0px) + 62px);padding:6px 12px}.halltag span{font-size:14px}}
 button.brand{pointer-events:auto;border:0;cursor:pointer;transition:background .2s}
 button.brand:hover{background:#000}
 button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
@@ -180,6 +186,7 @@ button.brand:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 <div id="css3d"></div>
 <div class="vignette"></div>
 
+<div class="halltag" id="hallTag" aria-live="polite"><b id="hallNo">1. KORİDOR</b><span id="hallName">Yazılımlar</span></div>
 <header class="top"><button class="brand" id="home" type="button" title="Koridorun başına dön">Proje <span>Koridoru</span></button>
   <button class="music" id="music" aria-pressed="false" title="KASIMOFF · Amor Mío (Original Mix)"><span class="bars"><i></i><i></i><i></i></span><span id="mlabel">Müzik</span></button>
 </header>
@@ -218,12 +225,14 @@ const PROJECTS = [
     about:"Şirketlerin tedarikçilerden teklif toplayıp elektronik ihale ve eksiltme yaptığı B2B satınalma platformu. İngiliz, Hollanda, Japon ve Brezilya tipi ihale türlerini destekliyor." },
   { hall:0, name:"Toygun",              url:"toygun.vercel.app",            tag:"Eğitim yönetimi",       desc:"Kolej ve kurslar için konsolide finans, idari, sınav ve ödeme takibi.",   accent:"#e0583a", kind:"Web uygulaması",
     about:"Bir ya da birden fazla kolej ve kursun finansal, idari, sınav ve ödeme takiplerini tek bir yazılım içinde konsolide olarak yaptığı yönetim uygulaması." },
+  { hall:0, name:"Servis İvme",         url:"servisivme2.vercel.app",       tag:"Araç servis yönetimi",  desc:"Araç servisleri için finansal, idari ve servis kayıtları takibi.",         accent:"#c2185b", kind:"Web uygulaması",
+    about:"Araç servislerinin finansal, idari ve servis kayıtlarının takip edildiği yazılım." },
+  { hall:0, name:"Teknik Bizim İşimiz", url:"teknikbizimisimiz.vercel.app", tag:"Teknik hizmetler",      desc:"Teknik servis ve hizmet sitesi.",                                       accent:"#8a63d2", kind:"Web sitesi",
+    about:"Teknik servis ve hizmet işleri için hazırlanmış tanıtım sitesi. Hizmetleri ve iletişim bilgilerini telefonda da rahat okunan sade bir düzende sunuyor." },
+  { hall:0, name:"Outsight Danışmanlık", url:"www.outsight.com.tr",          tag:"Yönetim danışmanlığı",  desc:"Geleceği, bugünden tasarlayan bir strateji merkezi.",                   accent:"#2fae6b", kind:"Web sitesi",
+    about:"Outsight Danışmanlık'ın kurumsal sitesi; satınalma, tedarik zinciri ve yönetim danışmanlığı hizmetlerini anlatıyor. Koridordaki tüm projelerin arkasındaki saha deneyimini temsil ediyor." },
   { hall:1, name:"Ishbee",              url:"ishbee.vercel.app",            tag:"Web platformu",         desc:"Kurumsal web platformu ve dijital çözümler.",                            accent:"#e3a72f", kind:"Web sitesi",
     about:"Ishbee'nin kurumsal web sitesi; markayı ve sunduğu dijital çözümleri tek bir yerde tanıtıyor. Zamanla ölçüm ve analiz odaklı bir platforma dönüşmesi planlanıyor." },
-  { hall:1, name:"Teknik Bizim İşimiz", url:"teknikbizimisimiz.vercel.app", tag:"Teknik hizmetler",      desc:"Teknik servis ve hizmet sitesi.",                                       accent:"#8a63d2", kind:"Web sitesi",
-    about:"Teknik servis ve hizmet işleri için hazırlanmış tanıtım sitesi. Hizmetleri ve iletişim bilgilerini telefonda da rahat okunan sade bir düzende sunuyor." },
-  { hall:1, name:"Outsight Danışmanlık", url:"www.outsight.com.tr",          tag:"Yönetim danışmanlığı",  desc:"Geleceği, bugünden tasarlayan bir strateji merkezi.",                   accent:"#2fae6b", kind:"Web sitesi",
-    about:"Outsight Danışmanlık'ın kurumsal sitesi; satınalma, tedarik zinciri ve yönetim danışmanlığı hizmetlerini anlatıyor. Koridordaki tüm projelerin arkasındaki saha deneyimini temsil ediyor." },
 ];
 /* Canlı önizleme: esere varınca site çerçevenin içinde canlı açılır.
    "auto" = Vercel gibi kendi adresinizde açık, Claude önizlemesinde kapalı. true / false ile zorlayabilirsiniz. */
@@ -751,6 +760,11 @@ async function boot(){
   const sOfLocal=(h,z)=>h===0?ZW0-2-z:S_A+S_ARC+(X1-z-RT);
   const sOfIdx=i=>sOfLocal(PROJECTS[i].hall,zOf(jOf(i)));
   const S_MAX=sOfLocal(1,HALL[1].ZEND+3);
+  /* dönüş bölgesi (kapıdan 3 m önce – 3 m sonra) üç kat yavaş geçilir: 2. koridora giriş acele olmasın */
+  const TA=S_A-3, TB=S_A+S_ARC+3, TK=2;
+  const costOf=s=>s+TK*Math.max(0,Math.min(s,TB)-TA);
+  const sOfCost=c=>c<=TA?c:c<=TA+(TB-TA)*(1+TK)?TA+(c-TA)/(1+TK):c-TK*(TB-TA);
+  const hallAt=s=>s>S_A+S_ARC/2?1:0;
   function worldPose(ps){const p=pathAt(ps.s);return{x:p.x+Math.cos(p.yaw)*ps.l,z:p.z+Math.sin(p.yaw)*ps.l,yaw:p.yaw+ps.r};}
   scene.updateMatrixWorld(true);
 
@@ -824,7 +838,7 @@ async function boot(){
   PROJECTS.forEach((p,i)=>{const b=document.createElement('button');b.className='dot';b.setAttribute('aria-label',p.name);b.onclick=()=>go(i);dots.appendChild(b);});
   function go(i){
     if(i===-99)return;i=Math.max(-1,Math.min(N-1,i));if(i===target&&!free)return;
-    const hops=Math.round(Math.abs(poseOf(i).s-pose.s)/SP);free=false;walkV=0;target=i;arrived=false;showActive(-1);
+    const hops=Math.round(Math.abs(costOf(poseOf(i).s)-costOf(pose.s))/SP);free=false;walkV=0;target=i;arrived=false;showActive(-1);
     homeRun=false;anim={from:{...pose},to:poseOf(i),t0:performance.now(),dur:reduce?1:(2800+Math.min(5,hops)*1400)};
     tYaw=0;tPitch=0;stopStory();Music.start();Music.play(i<0?null:i);ui();
   }
@@ -845,7 +859,7 @@ async function boot(){
   $('prev').onclick=()=>go(target-1);
   $('next').onclick=()=>go(target+1);
   $('home').onclick=e=>{e.stopPropagation();closeViewer();closeInfo();const from=target;go(-1);if(anim&&from>0){homeRun=true;homeFrom=from;homeLast=from;
-    if(!reduce)anim.dur=2400+Math.round(Math.abs(anim.to.s-anim.from.s)/SP)*3000;}};   // dönüş yavaş: her tablonun camı rahat okunsun
+    if(!reduce)anim.dur=2400+Math.round(Math.abs(costOf(anim.to.s)-costOf(anim.from.s))/SP)*3000;}};   // dönüş yavaş: her tablonun camı rahat okunsun
   /* başa dönüş: geçilen her tablo için buzlu cam (ilk gidişte değil, yalnız dönüşte) */
   let homeRun=false,homeFrom=-1,homeLast=-1,passT=0;const pass=$('pass'),passImg=pass.querySelector('img');
   if(LOGO_IMAGE){passImg.onload=()=>{passImg.hidden=false;pass.querySelector('.lt').hidden=true;pass.querySelector('.ls').hidden=true;};passImg.src=LOGO_IMAGE;}
@@ -918,7 +932,7 @@ async function boot(){
   addEventListener('resize',resize);resize();
 
   const clamp01=x=>x<0?0:x>1?1:x, ease=t=>-(Math.cos(Math.PI*t)-1)/2, look=new THREE.Vector3();
-  let last=performance.now(), nextZap=1.5;
+  let last=performance.now(), nextZap=1.5, curHall=0;
   function frame(now){
     const dt=Math.min(0.05,(now-last)/1000);last=now;
     // sinematik geçiş: eserden dön → halıdaki ada bakarak yürü → yeni esere dön
@@ -928,11 +942,12 @@ async function boot(){
       const out=ease(clamp01(u/0.36)), walk=ease(clamp01((u-0.12)/0.74)), into=ease(clamp01((u-0.62)/0.38));
       pose.r=F.r*(1-out)+T.r*into;
       pose.l=F.l*(1-out)+T.l*into;
-      pose.s=F.s+(T.s-F.s)*walk;
+      const cF=costOf(F.s),cT=costOf(T.s);pose.s=sOfCost(cF+(cT-cF)*walk);
       walkAmt=Math.sin(Math.PI*clamp01((u-0.12)/0.74));
       if(homeRun){let hit=-1;for(let k=homeLast-1;k>=0;k--)if(pose.s<=sOfIdx(k)+1)hit=k;if(hit>=0){homeLast=hit;showPass(hit);}}   // tablonun hizasını geçince
       if(u>=1){anim=null;Object.assign(pose,T);}
     }
+    { const hh=hallAt(pose.s);if(hh!==curHall){curHall=hh;$('hallNo').textContent=(hh+1)+'. KORİDOR';$('hallName').textContent=HALL_NAMES[hh];$('hallTag').classList.toggle('h1',hh===1);} }
     let glowAmt=walkAmt, freeAmt=0;
     if(free){
       if(keys.f)walkV=Math.min(VMAX,walkV+2.2*dt);if(keys.b)walkV=Math.max(-VMAX,walkV-2.2*dt);
