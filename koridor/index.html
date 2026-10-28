@@ -196,8 +196,8 @@ const PROJECTS = [
     about:"Teknik servis ve hizmet işleri için hazırlanmış tanıtım sitesi. Hizmetleri ve iletişim bilgilerini telefonda da rahat okunan sade bir düzende sunuyor." },
   { name:"EihalePro",           url:"eihalepro.vercel.app",         tag:"SaaS · Satınalma",      desc:"B2B e-ihale ve e-tedarik platformu. Teklif ve eksiltmeler tek panelde.", accent:"#2f8fe0", kind:"Uygulama (SaaS)",
     about:"Şirketlerin tedarikçilerden teklif toplayıp elektronik ihale ve eksiltme yaptığı B2B satınalma platformu. İngiliz, Hollanda, Japon ve Brezilya tipi ihale türlerini destekliyor." },
-  { name:"Toygun",              url:"toygun.vercel.app",            tag:"Web projesi",           desc:"Kurumsal tanıtım ve web projesi.",                                       accent:"#e0583a", kind:"Web uygulaması",
-    about:"Tanıtım sayfaları ve panel ekranlarıyla birlikte geliştirilen web projesi. Revizyonlarla sürekli büyüyor ve Vercel üzerinde yayında tutuluyor." },
+  { name:"Toygun",              url:"toygun.vercel.app",            tag:"Eğitim yönetimi",       desc:"Kolej ve kurslar için konsolide finans, idari, sınav ve ödeme takibi.",   accent:"#e0583a", kind:"Web uygulaması",
+    about:"Bir ya da birden fazla kolej ve kursun finansal, idari, sınav ve ödeme takiplerini tek bir yazılım içinde konsolide olarak yaptığı yönetim uygulaması." },
   { name:"Outsight Danışmanlık", url:"www.outsight.com.tr",          tag:"Yönetim danışmanlığı",  desc:"Geleceği, bugünden tasarlayan bir strateji merkezi.",                   accent:"#2fae6b", kind:"Web sitesi",
     about:"Outsight Danışmanlık'ın kurumsal sitesi; satınalma, tedarik zinciri ve yönetim danışmanlığı hizmetlerini anlatıyor. Koridordaki tüm projelerin arkasındaki saha deneyimini temsil ediyor." },
 ];
@@ -660,6 +660,25 @@ async function boot(){
   addFlag(-2.35,1.4,true);addFlag(1.5,1.4,false);
   // her projenin sağında, duvarın önünde bilgi bayrağı (tıklayınca bilgi penceresi açılır)
   const flagMeshes=[];
+  /* dokunma noktaları: kavuniçi iç içe daireler; içtekiler daralıp genişleyerek tıklamaya davet eder */
+  const HOT_C='#ff8c3a', hotspots=[], artTargets=panels.map(p=>p.art);
+  function ringTex(fill){const [c,g]=canv(256,256);g.strokeStyle=HOT_C;g.fillStyle=HOT_C;
+    if(fill){const gr=g.createRadialGradient(128,128,0,128,128,128);gr.addColorStop(0,'rgba(255,140,58,1)');gr.addColorStop(.4,'rgba(255,140,58,1)');gr.addColorStop(.44,'rgba(255,255,255,.95)');gr.addColorStop(.5,'rgba(255,170,110,.55)');gr.addColorStop(1,'rgba(255,140,58,0)');g.fillStyle=gr;g.fillRect(0,0,256,256);}
+    else{g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=24;g.beginPath();g.arc(128,128,112,0,7);g.stroke();g.strokeStyle=HOT_C;g.lineWidth=14;g.beginPath();g.arc(128,128,112,0,7);g.stroke();}
+    return tex(c);}
+  const hotRingT=ringTex(false), hotDotT=ringTex(true), hotGeo=new THREE.PlaneGeometry(1,1);
+  const hotMat=(t,o)=>B({map:t,transparent:true,opacity:o,depthWrite:false,fog:false});
+  function addHotspot(parent,x,y,z,r,idx,targets){
+    const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);
+    const outer=new THREE.Mesh(hotGeo,hotMat(hotRingT,.95));outer.scale.setScalar(r*2);g.add(outer);
+    const mid=new THREE.Mesh(hotGeo,hotMat(hotRingT,.85));mid.position.z=0.002;g.add(mid);
+    const dot=new THREE.Mesh(hotGeo,hotMat(hotDotT,1));dot.position.z=0.004;g.add(dot);
+    const hit=new THREE.Mesh(new THREE.CircleGeometry(r,20),B({transparent:true,opacity:0,depthWrite:false}));hit.position.z=0.006;hit.userData.idx=idx;g.add(hit);targets.push(hit);
+    [outer,mid,dot].forEach(m=>m.renderOrder=5);
+    hotspots.push({mid,dot,r,ph:hotspots.length*0.9});
+  }
+  // her tablonun sol kenarının ortasında (canlı site açıkken de görünsün diye çerçevenin üstünde)
+  panels.forEach((pn,i)=>addHotspot(pn.grp,ART_OX-ART_W/2-0.04,0,0.09,0.22,i,artTargets));
   PROJECTS.forEach((p,i)=>{
     const pn=panels[i],grp=new THREE.Group(),S=0.85;grp.position.set(ART_OX+ART_W/2+0.22,Y0-ART_Y,0.4);pn.grp.add(grp);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,3.7*S,10),B({color:0xa9a9a9}));pole.position.y=1.85*S;grp.add(pole);
@@ -670,6 +689,7 @@ async function boot(){
     const pivot=new THREE.Group();const ban=new THREE.Mesh(geo,B({map:projectFlagTex(p,i),side:THREE.DoubleSide}));
     ban.scale.setScalar(S);ban.position.set(0.022,0.5*S,0);pivot.add(ban);grp.add(pivot);
     ban.userData.idx=i;flagMeshes.push(ban);flags.push({pivot,redraw(){}});
+    addHotspot(pivot,0.3*S,3.15*S,0.03,0.17,i,flagMeshes);   // bayrağın kıvrık başında
   });
 
   // gerçek logo dosyası yüklenirse her yerde onunla değiştir
@@ -810,7 +830,7 @@ async function boot(){
   // açan tıklamanın kendisi (dokunmatik ekranda gecikmeli gelen tıklama dahil) görünümü hemen kapatmasın
   viewer.addEventListener('click',e=>{if(e.target.closest('.vopen'))return;if(performance.now()-vAt<600)return;closeViewer();});
   // fare tabloların üstündeyken büyüteç imleci
-  canvas.addEventListener('pointermove',e=>{if(drag)return;ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);const fh=ray.intersectObjects(flagMeshes)[0];canvas.classList.toggle('hot',!fh&&!!ray.intersectObjects(panels.map(p=>p.art))[0]);canvas.classList.toggle('flag',!!fh);});
+  canvas.addEventListener('pointermove',e=>{if(drag)return;ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);const fh=ray.intersectObjects(flagMeshes)[0];canvas.classList.toggle('hot',!fh&&!!ray.intersectObjects(artTargets)[0]);canvas.classList.toggle('flag',!!fh);});
   addEventListener('keydown',e=>{const k=e.key;
     if(infoOpen){if(k==='Escape'){e.preventDefault();closeInfo();}return;}
     if(vOpen>=0){if(k==='Escape'||k===' '||k==='Enter'){e.preventDefault();closeViewer();}return;}
@@ -831,7 +851,7 @@ async function boot(){
   const endDrag=e=>{if(!drag||drag.id!==e.pointerId)return;
     // tıklama (sürüklemesiz): tabloya tıklanırsa o esere git
     if(drag.b===0&&Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<6){ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,camera);
-      const fh=ray.intersectObjects(flagMeshes)[0],ah=ray.intersectObjects(panels.map(p=>p.art))[0];
+      const fh=ray.intersectObjects(flagMeshes)[0],ah=ray.intersectObjects(artTargets)[0];
       if(fh&&(!ah||fh.distance<ah.distance)){openInfo(fh.object.userData.idx);drag=null;return;}
       const hit=ah;if(hit){const k=hit.object.userData.idx;if(k===target&&!free&&!anim)openViewer(k);else go(k);}}
     drag=null;};
@@ -884,6 +904,8 @@ async function boot(){
     // avize parıltısı ve pencere manzarası paralaksı
     glows.forEach((sp,k)=>{sp.material.opacity=0.55+0.07*Math.sin(now/700+k*1.7);});
     flags.forEach((f,k)=>{f.pivot.rotation.y=Math.sin(now/1100+k*2)*0.14;});
+    hotspots.forEach(h=>{const t=reduce?0.5:0.5+0.5*Math.sin(now/520+h.ph);   // içteki halka ve nokta zıt yönde nefes alır
+      h.mid.scale.setScalar(h.r*2*(0.45+0.4*t));h.mid.material.opacity=0.45+0.5*t;h.dot.scale.setScalar(h.r*2*(0.55-0.2*t));});
     logoSlots.forEach((sl,k)=>{if(sl.shine)sl.shine.material.opacity=0.08+Math.max(0,Math.sin(now/2600+k*0.9))*0.1;});
 
     nextZap-=dt;if(nextZap<=0){const c=panels.filter(pn=>Math.abs(pn.grp.position.z-pose.z)<16);if(c.length)zap(c[(Math.random()*c.length)|0],12);nextZap=(reduce?5:1.6)+Math.random()*(reduce?4:2.2);}
